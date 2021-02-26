@@ -2,7 +2,7 @@
 
 -export([filter_users_sample/0,
 	 get_names_sample/0, partition_sample/0,
-	 split_by_age/2]).
+	 split_by_age/2, trim/1]).
 
 filter_users_sample() ->
     Users = [{user, 1, "Bob", male},
@@ -61,3 +61,19 @@ split_by_age([User | Rest], Age, {Below, Under}) ->
 	   split_by_age(Rest, Age, {[User | Below], Under});
        true -> split_by_age(Rest, Age, {Below, [User | Under]})
     end.
+
+trim(Str) ->
+    trim(Str, left, "").
+
+trim([], left, Acc) ->
+    trim(Acc, right, []);
+trim([32 | Rest], left, []) ->
+    trim(Rest, left, []);
+trim([Char | Rest], left, Acc) ->
+    trim(Rest, left, [Char | Acc]);
+trim([], right, Acc) ->
+    Acc;
+trim([32 | Rest], right, []) ->
+    trim(Rest, right, []);
+trim([Char | Rest], right, Acc) ->
+    trim(Rest, right, [Char | Acc]).
