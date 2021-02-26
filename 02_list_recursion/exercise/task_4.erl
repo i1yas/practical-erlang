@@ -4,11 +4,22 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+reverse(List) -> reverse(List, []).
+
+reverse([], Acc) -> Acc;
+reverse([Head | Tail], Acc) -> reverse(Tail, [Head | Acc]).
+
 
 %% implement lists:dropwhile/2
 %% http://www.erlang.org/doc/man/lists.html#dropwhile-2
 dropwhile(Pred, List) ->
-    List.
+    dropwhile(Pred, List, []).
+
+dropwhile(_, [], Acc) -> reverse(Acc);
+dropwhile(Pred, [Head | Tail], Acc) ->
+    Check = Pred(Head),
+    if Check -> dropwhile(Pred, Tail, Acc);
+    true -> [Head | Tail] end.
 
 
 dropwhile_test() ->
@@ -25,7 +36,13 @@ dropwhile_test() ->
 %% implement lists:takewhile/2
 %% http://www.erlang.org/doc/man/lists.html#takewhile-2
 takewhile(Pred, List) ->
-    List.
+    takewhile(Pred, List, []).
+
+takewhile(_, [], Acc) -> reverse(Acc);
+takewhile(Pred, [Head | Tail], Acc) ->
+    Check = Pred(Head),
+    if Check -> takewhile(Pred, Tail, [Head | Acc]);
+    true -> reverse(Acc) end.
 
 
 takewhile_test() ->
