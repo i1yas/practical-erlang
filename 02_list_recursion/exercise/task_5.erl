@@ -10,19 +10,29 @@ reverse([], Acc) -> Acc;
 reverse([Head | Tail], Acc) ->
     reverse(Tail, [Head | Acc]).
 
+dropwhile(Pred, List) ->
+    dropwhile(Pred, List, []).
+
+dropwhile(_, [], Acc) -> reverse(Acc);
+dropwhile(Pred, [Head | Tail], Acc) ->
+    Check = Pred(Head),
+    if Check -> dropwhile(Pred, Tail, Acc);
+    true -> [Head | Tail] end.
+
+takewhile(Pred, List) ->
+    takewhile(Pred, List, []).
+
+takewhile(_, [], Acc) -> reverse(Acc);
+takewhile(Pred, [Head | Tail], Acc) ->
+    Check = Pred(Head),
+    if Check -> takewhile(Pred, Tail, [Head | Acc]);
+    true -> reverse(Acc) end.
+
+
 %% implement lists:splitwith/2
 %% http://www.erlang.org/doc/man/lists.html#splitwith-2
 splitwith(Pred, List) ->
-    splitwith(Pred, List, {[], []}).
-
-splitwith(_, [], {True, False}) ->
-    {reverse(True), reverse(False)};
-splitwith(Pred, [Head | Tail], {True, False}) ->
-    Check = Pred(Head),
-    if Check ->
-	   splitwith(Pred, Tail, {[Head | True], False});
-       true -> splitwith(Pred, Tail, {True , [Head | False]})
-    end.
+    {takewhile(Pred, List), dropwhile(Pred, List)}.
 
 splitwith_test() ->
     F = fun (Val) -> Val rem 2 =:= 0 end,
