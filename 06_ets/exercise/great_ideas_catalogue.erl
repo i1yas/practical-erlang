@@ -37,20 +37,39 @@ init() ->
 
 
 add_idea(Id, Title, Author, Rating, Description) ->
-    ok.
+      ets:insert(great_ideas_table,
+            #idea{id=Id, title=Title, author=Author, rating=Rating, description=Description}).
 
 
 get_idea(Id) ->
-    not_found.
+      case ets:lookup(great_ideas_table, Id) of
+            [] -> not_found;
+            [Idea | _] -> {ok, Idea}
+      end.
 
 
 ideas_by_author(Author) ->
-    [].
+      ets:match_object(great_ideas_table, #idea{id='_', title='_', rating='_', description='_', author=Author}).
 
 
 ideas_by_rating(Rating) ->
-    [].
+      MS = ets:fun2ms(fun(Idea = #idea{rating = R}) when R >= Rating -> Idea end),
+      ets:select(great_ideas_table, MS).
 
 
 get_authors() ->
-    [].
+      Ideas = ets:tab2list(great_ideas_table),
+      AuthorsMap = lists:foldl(fun(#idea{author = Author}, Acc) ->
+                  case maps:find(Author, Acc) of
+                        error -> Acc#{Author => 1};
+                        {ok, Count} -> Acc#{Author => Count + 1}
+                  end
+            end,
+      #{}, Ideas),
+      Authors = maps:fold(fun(Author, Count, Acc) ->
+            [{Author, Count} | Acc] end, [], AuthorsMap),
+      lists:sort(fun
+                  ({A1, C}, {A2, C}) -> hd(A1) < hd(A2);
+                  ({_, C1}, {_, C2}) -> (C1 > C2)
+            end,
+            lists:reverse(Authors)).
