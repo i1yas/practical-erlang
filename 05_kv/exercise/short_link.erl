@@ -8,15 +8,24 @@ init() ->
     %% init randomizer
     <<A:32, B:32, C:32>> = crypto:strong_rand_bytes(12),
     rand:seed(exsp, {A,B,C}),
-    State = your_state_structure,
+    State = #{},
     State.
 
 
 create_short(LongLink, State) ->
-    your_result.
+    case State of
+        #{LongLink := ShortLink} -> {ShortLink, State};
+        _ ->
+            NewShortLink = "http://hexlet.io/" ++ rand_str(8),
+            {NewShortLink,
+                State#{LongLink => NewShortLink, NewShortLink => LongLink}}
+    end.
 
 get_long(ShortLink, State) ->
-    {error, not_found}.
+    case State of
+        #{ShortLink := LongLink} -> {ok, LongLink};
+        _ -> {error, not_found}
+    end.
 
 
 %% generates random string of chars [a-zA-Z0-9]
