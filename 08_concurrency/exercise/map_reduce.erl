@@ -20,7 +20,7 @@ map(File) ->
     end.
 
 reduce(0, Acc) -> Acc;
-reduce(IterCount, Acc) ->
+reduce(WorkerCount, Acc) ->
     receive
         {data, Data} ->
             Merged = maps:fold(fun(Word, Count, MergeAcc) ->
@@ -29,8 +29,8 @@ reduce(IterCount, Acc) ->
                         _ -> MergeAcc#{Word => Count}
                     end
                 end, Acc, Data),
-            reduce(IterCount - 1, Merged);
-        error -> reduce(IterCount - 1, Acc)
+            reduce(WorkerCount - 1, Merged);
+        error -> reduce(WorkerCount - 1, Acc)
     after 1000 -> io:format("No messages in 1s")
     end.
 
@@ -39,5 +39,8 @@ map_reduce(Files) ->
     reduce(length(Files), #{}).
 
 start(Files) ->
-    register(reduce, self()),
+    case whereis(reduce) of
+        undefined -> register(reduce, self());
+        _ -> nothing
+    end,
     map_reduce(Files).
