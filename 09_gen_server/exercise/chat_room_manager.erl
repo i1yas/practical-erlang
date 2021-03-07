@@ -6,9 +6,12 @@
          send_message/4,  get_messages_history/2]).
 -export([call/2, loop/1]).
 
+-record(room, {name, users, messages}).
+-record(message, {user, text}).
+
 start() ->
     io:format("start ~p~n", [self()]),
-    InitialState = #{rooms => [], users => [], room_to_users => #{}},
+    InitialState = #{},
     spawn(?MODULE, loop, [InitialState]).
 
 
@@ -29,7 +32,7 @@ add_user(Server, RoomId, UserName) ->
 
 
 remove_user(Server, RoomId, UserName) ->
-    call(Server, {remove_user, {RoomId, UserName}}).
+    call(Server, {remove_user, RoomId, UserName}).
 
 
 get_users_list(Server, RoomId) ->
@@ -69,42 +72,67 @@ loop(State) ->
     end.
 
 handle_call({create_room, RoomName}, State) ->
-    {ok, State};
-    % Rooms = maps:get(rooms, State),
-    % RoomId = erlang:md5(RoomName),
-    % case lists:keysearch(RoomId, 1, Rooms) of
-    %     {value, _} ->
-    %         NewState = State#{rooms => [{RoomId, RoomName} | Rooms]},
-    %         {RoomId, NewState};
-    %     false -> {{error, room_limit}, State}
-    % end;
+    case (maps:size(State) > 4) of
+        true -> {{error, room_limit}, State};
+        false ->
+            RoomId = make_ref(),
+            NewState = State#{RoomId => #room{name = RoomName, users = [], messages = []}},
+            {{ok, RoomId}, NewState}
+    end;
 handle_call({remove_room, RoomId}, State) ->
-    {ok, State};
-    % Rooms = maps:get(rooms, State),
-    % case list:keysearch(RoomId, 1, Rooms) of
-    %     {value, _} ->
-    %         NewState = lists:keydelete(RoomId, 1, Rooms),
-    %         {ok, NewState};
-    %     false -> {{error, not_found}, State}
-    % end;
+    case State of
+        #{RoomId := _} ->
+            NewState = maps:remove(RoomId, State),
+            {ok, NewState};
+        _ -> {{error, room_not_found}, State}
+    end;
 handle_call(rooms, State) ->
-    maps:get(rooms, State);
+    RoomList = lists:map(fun({RoomId, #room{name = RoomName}}) -> {RoomId, RoomName} end,
+        maps:to_list(State)),
+    {RoomList, State};
 handle_call({add_user, RoomId, UserName}, State) ->
-    {ok, State}.
-    % Rooms = maps:get(rooms, State),
-    % case lists:keysearch(RoomId, 1, Rooms) of
-    %     {value, _} ->
-    %         RoomToUsers = maps:get(room_to_users, State),
-    %         RoomUsers = case RoomToUsers of
-    %             #{RoomId := Users} -> Users;
-    %             _ -> []
-    %         end,
-    %         case lists:member(UserName, RoomUsers) of
-    %             true -> {{error, user_is_in_room}, State};
-    %             false ->
-    %                 NewState = State#{room_to_users =>
-    %                     RoomToUsers#{RoomId => [UserName | RoomUsers]}},
-    %                 {ok, NewState}
-    %         end;
-    %     false -> {{error, room_not_found}, State}
-    % end.
+    case State of
+        #{RoomId := Room = #room{users = UserList}} ->
+            case lists:member(UserName, UserList) of
+                true -> {{error, user_is_in_room}, State};
+                false ->
+                    NewState = State#{RoomId => Room#room{users = [UserName | UserList]}},
+                    {ok, NewState}
+            end;
+        _ -> {{error, room_not_found}, State}
+    end;
+handle_call({users, RoomId}, State) ->
+    case State of
+        #{RoomId := #room{users = UserList}} -> {{ok, UserList}, State};
+        _ -> {{error, room_not_found}, State}
+    end;
+handle_call({remove_user, RoomId, UserName}, State) ->
+    case State of
+        #{RoomId := #room{users = UserList}} ->
+            case lists:member(UserName, UserList) of
+                true ->
+                    NewState = State#{RoomId => #room{users = lists:delete(UserName, UserList)}},
+                    {ok, NewState};
+                false -> {{error, user_not_in_room}, State}
+            end;
+        _ -> {{error, room_not_found}, State}
+    end;
+handle_call({message, RoomId, UserName, Message}, State) ->
+    case State of
+        #{RoomId := Room = #room{users = UserList}} ->
+            case lists:member(UserName, UserList) of
+                true ->
+                    NewState = State#{RoomId =>
+                        Room#room{messages = [#message{user = UserName, text = Message} | Room#room.messages]}},
+                    {ok, NewState};
+                false -> {{error, user_not_in_room}, State}
+            end;
+        _ -> {{error, room_not_found}, State}
+    end;
+handle_call({messages, RoomId}, State) ->
+    case State of
+        #{RoomId := #room{messages = Messages}} ->
+            MessagesToSend = lists:map(fun(#message{user = User, text = Text}) -> {User, Text} end, Messages),
+            {{ok, MessagesToSend}, State};
+        _ -> {{error, room_not_found}, State}
+    end.
