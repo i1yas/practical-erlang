@@ -99,4 +99,8 @@ chat_room_manager_test() ->
     ?assertEqual([{<<"Bob">>, <<"Hello">>}, {<<"Helen">>, <<"Hi">>}],
                  chat_user:get_messages(UserPid3)),
 
+    ?assertEqual({error, room_not_found}, chat_room_manager:close_room(self())),
+    ?assertEqual(ok, chat_room_manager:close_room(RoomPid1)),
+    ?assertEqual({error, room_not_found}, chat_room_manager:get_users(RoomPid1)),
+
     ok.
