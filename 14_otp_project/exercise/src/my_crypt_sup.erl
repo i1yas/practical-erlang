@@ -18,4 +18,4 @@ init(_Args) ->
         start => {my_crypt_worker, start_link, []},
         type => worker
     }],
-    {ok, SupSpec, Childs}.
+    {ok, {SupSpec, Childs}}.
