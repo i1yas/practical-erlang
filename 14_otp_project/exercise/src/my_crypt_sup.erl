@@ -15,7 +15,7 @@ init(_Args) ->
     },
     Childs = [#{
         id => state_keeper,
-        start => {my_crypt_worker, start_link, []},
+        start => {my_crypt, start_link, []},
         type => worker
     }],
     {ok, {SupSpec, Childs}}.

@@ -2,7 +2,7 @@
 {application, my_crypt, [
     {description, "My crypt app"},
     {vsn, "0.1"},
-    {modules, [my_crypt_app, my_crypt_sup, my_crypt_worker]},
+    {modules, [my_crypt_app, my_crypt_sup, my_crypt]},
     {env, []},
     {mod, {my_crypt_app, []}}
 ]}.
