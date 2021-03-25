@@ -42,15 +42,17 @@ query(RawBin) ->
         [<<"GETS">>, Key | Keys] ->
             gen_server:call(?MODULE, {gets, [Key | Keys]});
         [<<"SET">>, Key | Value ] ->
-            gen_server:call(?MODULE, {set, Key, Value});
+            gen_server:call(?MODULE, {set, Key, lists:join(" ", Value)});
         [<<"DELETE">>, Key] ->
             gen_server:call(?MODULE, {delete, Key});
         [<<"ADD">>, Key | Value] -> 
-            gen_server:call(?MODULE, {add, Key, Value});
+            gen_server:call(?MODULE, {add, Key, lists:join(" ", Value)});
         [<<"REPLACE">>, Key | Value] -> 
-            gen_server:call(?MODULE, {replace, Key, Value});
+            gen_server:call(?MODULE, {replace, Key, lists:join(" ", Value)});
         [<<"APPEND">>, Key | Value] -> 
-            gen_server:call(?MODULE, {append, Key, Value});
+            gen_server:call(?MODULE, {append, Key, lists:join(" ", Value)});
+        [<<"PREPEND">>, Key | Value] -> 
+            gen_server:call(?MODULE, {prepend, Key, lists:join(" ", Value)});
         _ -> <<"UNKNOWN REQUEST">> 
     end.
 
@@ -114,6 +116,15 @@ handle_call({append, Key, Value}, _From, State) ->
     case Values of
         #{Key := CurrentValue} ->
             NewState = State#state{values = Values#{ Key => [CurrentValue, Value] }},
+            {reply, ["STORED"], NewState};
+        _ ->
+            {reply, ["NOT FOUND"], State}
+    end;
+handle_call({prepend, Key, Value}, _From, State) ->
+    Values = State#state.values,
+    case Values of
+        #{Key := CurrentValue} ->
+            NewState = State#state{values = Values#{ Key => [Value, CurrentValue] }},
             {reply, ["STORED"], NewState};
         _ ->
             {reply, ["NOT FOUND"], State}
