@@ -1,1 +1,8 @@
-[].
+{"1.2.0",
+[{<<"erlz">>,{pkg,<<"erlz">>,<<"0.1.0">>},0}]}.
+[
+{pkg_hash,[
+ {<<"erlz">>, <<"5F8CEF2EB47E8F178848E691C7F992CECFD02F5E1D3C6159A33ED24999D980B1">>}]},
+{pkg_hash_ext,[
+ {<<"erlz">>, <<"7DAFF757498358C0AD7D950F2D0EFDB436F38284BCCF0C1E357B4C0A8C848527">>}]}
+].

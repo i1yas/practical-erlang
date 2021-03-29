@@ -41,8 +41,20 @@ initial_field(W, H) when W >= 5 andalso H >= 5 ->
 -spec move(player(), move(), field()) -> {ok, field()} | {error, invalid_move}.
 move(Player, Move, Field) ->
     {ok, MZ} = matrix_zipper:find(matrix_zipper:from_matrix(Field), Player),
-    io:format("move ~p ~p, player in position:~p", [Player, Move, matrix_zipper:position(MZ)]),
-    {ok, matrix_zipper:to_matrix(MZ)}.
+    MoveResult = erlz:error_do(MZ, [
+        fun (M) -> {ok, matrix_zipper:set(M, fallen)} end,
+        fun matrix_zipper:Move/1,
+        fun (M) -> {ok, matrix_zipper:set(M, Player)} end
+    ]),
+    io:format("Move result is: ~p~n", [MoveResult]),
+    case MoveResult of
+        {ok, NewMZ} ->
+            {ok, matrix_zipper:to_matrix(NewMZ)};
+        {error, _Reason} ->
+            {error, invalid_move} 
+    end.
+    % io:format("move ~p ~p, player in position:~p", [Player, Move, matrix_zipper:position(MZ)]),
+    % {ok, matrix_zipper:to_matrix(MZ)}.
 
 
 -spec find_player(player(), field()) -> position().
