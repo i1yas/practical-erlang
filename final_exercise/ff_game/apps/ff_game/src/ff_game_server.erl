@@ -26,6 +26,9 @@ accept(Id, ListenSocket) ->
     case gen_tcp:accept(ListenSocket) of
         {ok, Socket} ->
             io:format("Player #~p connected~n", [Id]),
+            AvailableCommands = "FIELD LEFT RIGHT UP DOWN",
+            Greeting = unicode:characters_to_binary(io_lib:format("~nHello, ~p~nAwailable commands are ~s~n~n", [Id, AvailableCommands])),
+            gen_tcp:send(Socket, <<Greeting/binary, "\r\n">>),
             handle_connection(Id, ListenSocket, Socket);
         E -> io:format("Socket for player #~p can't accept client ~p~n", [Id, E])
     end.
@@ -43,15 +46,31 @@ handle_connection(Id, ListenSocket, Socket) ->
     end.
 
 handle(Player, Msg) ->
+    Field = ff_game_player:get_field(),
+    case ff_game_player:get_game_status(Field) of
+        {game_over, #{Player := IsWinner}} ->
+            PlayersStatuses = #{
+                true => "winner",
+                false => "loser"
+            },
+            GameoverGoodbye = io_lib:format("You are ~s",
+                [maps:get(IsWinner, PlayersStatuses)]),
+            unicode:characters_to_binary([ff_game:draw_field(Field), GameoverGoodbye]);
+        continue -> parse_command(Player, Msg, Field)
+    end.
+
+parse_command(Player, Msg, CurrentField) ->
     Cmd = case Msg of
         <<"LEFT">> -> left;
         <<"RIGHT">> -> right;
         <<"UP">> -> up;
         <<"DOWN">> -> down;
+        <<"FIELD">> -> field;
         _ -> unknown
     end,
     case Cmd of
         unknown -> <<"UNKNOWN COMMAND">>;
+        field -> ff_game:draw_field(CurrentField);
         ValidCommand ->
             case ff_game_player:move(Player, ValidCommand) of
                 {ok, Field} -> ff_game:draw_field(Field);

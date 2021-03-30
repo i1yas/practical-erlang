@@ -4,6 +4,7 @@
 -export([initial_field/0
         ,initial_field/2
         ,move/3
+        ,get_player_statuses/1
         ,find_player/2
         ,draw_field/1]).
 
@@ -37,24 +38,46 @@ initial_field(W, H) when W >= 5 andalso H >= 5 ->
      [row(W) || _ <- lists:seq(1, H - 2)]
      ++ [last_row(W)]].
 
-
 -spec move(player(), move(), field()) -> {ok, field()} | {error, invalid_move}.
 move(Player, Move, Field) ->
     {ok, MZ} = matrix_zipper:find(matrix_zipper:from_matrix(Field), Player),
+    % check for unstable or player
     MoveResult = erlz:error_do(MZ, [
         fun (M) -> {ok, matrix_zipper:set(M, fallen)} end,
         fun matrix_zipper:Move/1,
+        fun (M) -> case matrix_zipper:get(M) of
+                stable -> {ok, M};
+                NotFree -> {error, NotFree}
+            end
+        end,
         fun (M) -> {ok, matrix_zipper:set(M, Player)} end
     ]),
-    io:format("Move result is: ~p~n", [MoveResult]),
     case MoveResult of
         {ok, NewMZ} ->
             {ok, matrix_zipper:to_matrix(NewMZ)};
         {error, _Reason} ->
             {error, invalid_move} 
     end.
-    % io:format("move ~p ~p, player in position:~p", [Player, Move, matrix_zipper:position(MZ)]),
-    % {ok, matrix_zipper:to_matrix(MZ)}.
+
+-spec get_player_statuses(field()) -> #{player_a => boolean(), player_b => boolean()}.
+get_player_statuses(Field) ->
+    SidesA = [
+        move(player_a, right, Field),
+        move(player_a, left, Field),
+        move(player_a, up, Field),
+        move(player_a, down, Field)
+    ],
+    SidesB = [
+        move(player_b, right, Field),
+        move(player_b, left, Field),
+        move(player_b, up, Field),
+        move(player_b, down, Field)
+    ],
+    FreeSides = fun(Sides) -> lists:foldl(fun
+        ({ok, _}, Count) -> Count + 1;
+        (_, Count) -> Count
+    end, 0, Sides) end,
+    #{player_a => FreeSides(SidesA) > 0, player_b => FreeSides(SidesB) > 0}.
 
 
 -spec find_player(player(), field()) -> position().
