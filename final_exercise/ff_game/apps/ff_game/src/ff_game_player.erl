@@ -6,6 +6,7 @@
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2]).
 
 -record(state, {
+    turn,
     game_over,
     field
 }).
@@ -28,7 +29,7 @@ get_game_status(Field) ->
 init(_Args) ->
     {ok, {W, H}} = application:get_env(field_size),
     Field = ff_game:initial_field(W, H),
-    {ok, #state{field = Field}}.
+    {ok, #state{field = Field, turn = player_a}}.
 
 handle_cast(_Request, State) ->
     {noreply, State}.
@@ -45,11 +46,19 @@ handle_call({get_game_status, Field}, _From,  State) ->
     end;
 handle_call({move, Player, Cmd}, _From,  State) ->
     Result = ff_game:move(Player, Cmd, State#state.field),
-    case Result of
-        {ok, Field} ->
-            NewState = State#state{field = Field},
-            {reply, Result, NewState};
-        E -> {reply, E, State}
+    case State#state.turn of
+        Player ->
+            NextTurn = case Player of
+                player_a -> player_b;
+                player_b -> player_a
+            end,
+            case Result of
+                {ok, Field} ->
+                    NewState = State#state{field = Field, turn = NextTurn},
+                    {reply, Result, NewState};
+                E -> {reply, E, State}
+            end;
+        _ -> {reply, {error, not_your_turn}, State}
     end;
 handle_call(_Request, _From,  State) ->
     {reply, ok, State}.

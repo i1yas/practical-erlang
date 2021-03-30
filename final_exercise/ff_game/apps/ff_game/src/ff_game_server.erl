@@ -74,6 +74,11 @@ parse_command(Player, Msg, CurrentField) ->
         ValidCommand ->
             case ff_game_player:move(Player, ValidCommand) of
                 {ok, Field} -> ff_game:draw_field(Field);
+                {error, not_your_turn} ->
+                    unicode:characters_to_binary([
+                        ff_game:draw_field(CurrentField),
+                        "NOT YOUR TURN"
+                    ]);
                 {error, invalid_move} -> <<"INVALID MOVE">>;
                 E ->
                     io:format("Unknown error: ~p~n", [E]),
