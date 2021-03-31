@@ -28,7 +28,15 @@ get_game_status(Field) ->
 % gen server api 
 init(_Args) ->
     {ok, {W, H}} = application:get_env(field_size),
-    Field = ff_game:initial_field(W, H),
+    Field0 = ff_game:initial_field(W, H),
+    IsRandomizeField = case application:get_env(random_field) of
+        {ok, true} -> true;
+        _ -> false
+    end,
+    Field = case IsRandomizeField of
+        true -> ff_game:randomize_field(Field0, {W, H});
+        false -> Field0
+    end,
     {ok, #state{field = Field, turn = player_a}}.
 
 handle_cast(_Request, State) ->

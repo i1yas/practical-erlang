@@ -3,6 +3,7 @@
 -export([test/0]).
 -export([initial_field/0
         ,initial_field/2
+        ,randomize_field/2
         ,move/3
         ,get_player_statuses/1
         ,find_player/2
@@ -30,6 +31,31 @@ test() ->
 -spec initial_field() -> field().
 initial_field() ->
     initial_field(10, 10).
+
+-spec randomize_field(field(), {integer(), integer()}) -> field().
+randomize_field(Field, {W, H}) ->
+    MZ = matrix_zipper:from_matrix(Field),
+    RandomizedMZ = randomize_field(MZ, {W, H}, 10),
+    matrix_zipper:to_matrix(RandomizedMZ).
+
+-spec randomize_field(matrix_zipper:mz(), {integer(), integer()}, integer()) -> matrix_zipper:mz().
+randomize_field(MZ, _, 0) -> MZ;
+randomize_field(MZ, {W, H}, Count) ->
+    X = rand:uniform(W),
+    Y = rand:uniform(H),
+    case erlz:error_do(MZ, [
+        fun(M) -> matrix_zipper:right(M, X) end,
+        fun(M) -> matrix_zipper:down(M, Y) end,
+        fun(M) -> case matrix_zipper:get(M) of
+                stable -> {ok, M};
+                _ -> {error, cant_fall_this}
+            end
+        end,
+        fun(M) -> {ok, matrix_zipper:set(M, fallen)} end
+    ]) of
+        {ok, NewMZ} -> randomize_field(NewMZ, {W, H}, Count - 1);
+        {error, _} -> randomize_field(MZ, {W, H}, Count)
+    end.
 
 
 -spec initial_field(size(), size()) -> field().
