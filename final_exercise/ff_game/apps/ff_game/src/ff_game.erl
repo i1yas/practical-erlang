@@ -41,11 +41,23 @@ randomize_field(Field, {W, H}) ->
 -spec randomize_field(matrix_zipper:mz(), {integer(), integer()}, integer()) -> matrix_zipper:mz().
 randomize_field(MZ, _, 0) -> MZ;
 randomize_field(MZ, {W, H}, Count) ->
-    X = rand:uniform(W),
-    Y = rand:uniform(H),
     case erlz:error_do(MZ, [
-        fun(M) -> matrix_zipper:right(M, X) end,
-        fun(M) -> matrix_zipper:down(M, Y) end,
+        fun(M) ->
+            {X, _} = matrix_zipper:position(M),
+            Dx = rand:uniform(W - 1) - X,
+            case Dx < 0 of
+                true -> matrix_zipper:left(M, -Dx);
+                false -> matrix_zipper:right(M, Dx)
+            end
+        end,
+        fun(M) ->
+            {_, Y} = matrix_zipper:position(M),
+            Dy = rand:uniform(H - 1) - Y,
+            case Dy < 0 of
+                true -> matrix_zipper:up(M, -Dy);
+                false -> matrix_zipper:down(M, Dy)
+            end
+        end,
         fun(M) -> case matrix_zipper:get(M) of
                 stable -> {ok, M};
                 _ -> {error, cant_fall_this}
